@@ -35,8 +35,7 @@ end
 
 % OFDM Modulation (TX): Serial to Parallel, IFFT
 Data_tx = reshape(qamSymbols, N, []);  % Reshape to N subcarriers x symbols
-Data_tx = ifft_function(Data_tx, N);
-Data_tx = Data_tx* sqrt(N); % Normalizing the data
+Data_tx = ifft_function(Data_tx, N)* sqrt(N); % IFFT & Normalization
 
 fprintf('Power before CP: %f\n', mean(abs(Data_tx(:)).^2));
 
@@ -53,13 +52,11 @@ y = y.*sqrt(10.^(-SNR/10));
 
 %% Receiver
 
-extraSamples = length(h) - 1;
+extraSamples = length(h) - 1; % Due to convolution in channelEmulation
 Data_rx = reshape(y, N + extraSamples + CP , []);  % Serial to parallel conversion
 Data_rx = Data_rx(CP+1: CP + N, :); % Remove CP
 
-fprintf('Received Power before EQ: %f\n', mean(abs(Data_rx(:)).^2));
-
-Data_rx = (fft_function(Data_rx, N))/ sqrt(N); % FFT
+Data_rx = (fft_function(Data_rx, N))/ sqrt(N); % FFT & Normalization
 
 fprintf('Received Power before EQ: %f\n', mean(abs(Data_rx(:)).^2));
 
@@ -86,6 +83,7 @@ fprintf('Bit Error Rate (BER): %f\n', ber);
 % Constellation Plots
 scatterplot(qamSymbols);  % Original transmitted symbols
 title('Transmitted QAM Constellation');
+
 scatterplot(equalizedSymbols(:));  % Received symbols after equalization
 title('Received Constellation after Equalization');
 
@@ -188,7 +186,7 @@ end
 
 % Plot BER vs. SNR
 figure;
-semilogy(SNR_range, BER, 'o-');
+plot(SNR_range, BER, 'X - ', LineWidth=2);
 xlabel('SNR (dB)');
 ylabel('Bit Error Rate (BER)');
 title('BER vs. SNR');

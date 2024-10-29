@@ -3,24 +3,19 @@ clear;
 close all;
 
 %% Parameters
-N = 64;  % Number of OFDM subcarriers
-CP = N * 0.50;  % Cyclic prefix length
-SNR = 0:5:40;  % SNR values for BER vs. SNR plot
-h = [1 0.2 0.1 0.05];  % Channel impulse response
-extraSamples = length(h) - 1;  % Extra samples from channel convolution
 
-% QAM orders to test
+SNR = 0:5:40;  % SNR values for BER vs. SNR plot
 QAM_Orders = [4, 16, 64];  % 4-QAM, 16-QAM, 64-QAM
-Equalizers = {'1', '2'};  % Zero Forcing (1) and MMSE equalizers(2)
+Equalizers = {'1','2'};  % Zero Forcing (1) and MMSE equalizers(2)
 
 % Simulation across QAM Orders and Equalizers
 for qam_order = QAM_Orders
     for eq_type = Equalizers
         for SNR_range = SNR
-            eq_type = char(eq_type); 
+            eq_type = char(eq_type);
             N = 64;  % Number of OFDM subcarriers
             CP = N * 0.50;  % Cyclic prefix length
-            h = [1 0.2 0.1 0.05];  % Channel impulse response
+            h = 1;  % Channel impulse response
             extraSamples = length(h) - 1;  % Extra samples from channel convolution
             to = 0;
     
@@ -28,21 +23,22 @@ for qam_order = QAM_Orders
             BER_normalized = simulate_ofdm(qam_order, eq_type, true, N, CP, SNR_range, h, to);
             BER_non_normalized = simulate_ofdm(qam_order, eq_type, false, N, CP, SNR_range, h, to);
     
-            semilogy(SNR_range, BER_normalized, 'o-', 'DisplayName', 'Normalized');
+            plot(SNR_range, BER_normalized, 'o-', 'DisplayName', 'Normalized');
             hold on;
-            semilogy(SNR_range, BER_non_normalized, 'x--', 'DisplayName', 'Non-Normalized');
+            plot(SNR_range, BER_non_normalized, 'x--', 'DisplayName', 'Non-Normalized');
             xlabel('SNR (dB)');
             ylabel('Bit Error Rate (BER)');
             title(sprintf('BER vs. SNR for %d-QAM with %s Equalizer', qam_order, eq_type));
             legend('show');
             grid on;
+
         end
     end
 end
 
 % Function to simulate OFDM for different parameters
 function BER_results = simulate_ofdm(qam_order, eq_type, normalize, N, CP, SNR, h, to)
-    rng(42); 
+
     bitsPerSymbol = log2(qam_order);  % Bits per QAM symbol
     numBits = N * bitsPerSymbol;  % Total bits per OFDM symbol
     dataBits = randi([0, 1], numBits, 1);  % Random bit stream
@@ -55,15 +51,15 @@ function BER_results = simulate_ofdm(qam_order, eq_type, normalize, N, CP, SNR, 
     Data_tx = ifft(Data_tx) * sqrt(N) * normalize;
 
     % Add Cyclic Prefix (CP)
-    Data_tx_cp = [Data_tx(end-CP+1:end, :); Data_tx];
-    Data_tx_cp = Data_tx_cp(:);  % Convert to serial for transmission
+    Data_tx = [Data_tx(end-CP+1:end, :); Data_tx];
+    Data_tx = Data_tx(:);  % Convert to serial for transmission
 
     % Channel + Noise
     y = channelEmulation(Data_tx, 10.^(SNR/10), to, h).*sqrt(10.^(-SNR/10));
 
     % Receiver: Remove CP and apply FFT
     extraSamples = length(h) - 1; % Due to convolution in channelEmulation
-    Data_rx = reshape(y, N + extraSamples + CP , []);  % Serial to parallel conversion
+    Data_rx = reshape(y, N + CP+extraSamples , []);  % Serial to parallel conversion
     Data_rx = Data_rx(CP+1: CP + N, :); % Remove CP
     Data_rx = fft(Data_rx) / (sqrt(N) * normalize);  % FFT and normalize
 
@@ -71,18 +67,12 @@ function BER_results = simulate_ofdm(qam_order, eq_type, normalize, N, CP, SNR, 
     h_hat = fft(h, N) / sqrt(N);  % Channel estimate
     signalPower = mean(abs(Data_tx(:)).^2);  % Signal power
     noiseVariance = signalPower / (10^(SNR / 10));  % Noise variance
-
-equalizedSymbols = mmse_equalization(Data_rx, h_hat, noiseVariance, signalPower);
-equalizedSymbols = equalizedSymbols / sqrt(mean(abs(equalizedSymbols).^2)); % normalization
-    equalizedSymbols = equalize(Data_rx, h_hat, eq_type);
+    equalizedSymbols = equalize(Data_rx, h_hat, eq_type, noiseVariance,signalPower );
 
     % QAM Demapping and BER calculation
     receivedBits = qam_demap(equalizedSymbols, qam_order);
     BER_results = sum(dataBits ~= receivedBits) / numBits;  % BER
 end
-
-% Helper Functions
-
 
 % QAM Mapping (Gray Encoding)
 function qamSymbols = gray_map(bits, M)
@@ -120,13 +110,12 @@ function bits = qam_to_gray(qamSymbol, M)
 end
 
 % Equalizer Function (ZF or MMSE)
-function equalizedSymbols = equalize(Data_rx, h_hat, eq_type)
+function equalizedSymbols = equalize(Data_rx, h_hat, eq_type, noiseVariance,signalPower)
     switch eq_type
         case '1'
             equalizedSymbols = Data_rx ./ h_hat;
         case '2'
-            noiseVar = 0.01;  % Example noise variance
-            mmseFilter = conj(h_hat) ./ (abs(h_hat).^2 + noiseVar);
+            mmseFilter = conj(h_hat) ./ (abs(h_hat).^2 + noiseVariance / signalPower);
             equalizedSymbols = Data_rx .* mmseFilter;
         otherwise
             error('Invalid Equalizer Type');

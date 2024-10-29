@@ -17,7 +17,8 @@ CP = N * 0.50;
 % Roberto' Parameters
 SNR = 40; 
 to = 0;
-h = [1 0.2 0.1 0.05];
+%h = [1 0.2 0.1 0.05];
+%h = [0 1 0.2 0.1 0.05];
 %h = [1];
 
 % Input data
@@ -35,7 +36,7 @@ end
 
 % OFDM Modulation (TX): Serial to Parallel, IFFT
 Data_tx = reshape(qamSymbols, N, []);  % Reshape to N subcarriers x symbols
-Data_tx = ifft_function(Data_tx, N)* sqrt(N); % IFFT & Normalization
+Data_tx = ifft(Data_tx, N)* sqrt(N); % IFFT & Normalization
 
 fprintf('Power before CP: %f\n', mean(abs(Data_tx(:)).^2));
 
@@ -47,8 +48,7 @@ Data_tx = Data_tx(:);  % Convert to serial for transmission
 
 % Pass through the channel (provided function)
 % y = channelEmulationKundai(Data_tx, SNR, to, h);
-y = channelEmulation(Data_tx, 10.^(SNR/10), to, h);
-y = y.*sqrt(10.^(-SNR/10));
+y = channelEmulation(Data_tx, 10.^(SNR/10), to, h).*sqrt(10.^(-SNR/10));
 
 %% Receiver
 
@@ -61,7 +61,7 @@ Data_rx = (fft_function(Data_rx, N))/ sqrt(N); % FFT & Normalization
 fprintf('Received Power before EQ: %f\n', mean(abs(Data_rx(:)).^2));
 
 % Equalization Using Known Channel (h_hat)
-h_hat = fft_function(h, N) / sqrt(N); % Take FFT with normalization
+h_hat = fft(h, N) / sqrt(N); % Take FFT with normalization
 signalPower = mean(abs(Data_tx(:)).^2);  % Signal power
 noiseVariance = signalPower / (10^(SNR / 10));  % Noise variance
 
@@ -158,7 +158,7 @@ end
 
 % Visualizing BER vs SNR
 
-SNR_range = 0:5:40; % Range of SNR values
+SNR_range = 0:5:100; % Range of SNR values
 BER = zeros(length(SNR_range), 1); % Store BER for each SNR
 
 for i = 1:length(SNR_range)

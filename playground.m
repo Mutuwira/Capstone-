@@ -3,7 +3,7 @@ clear;
 close all;
 
 % Parameters
-SNR_range = 0:5:30;  % SNR values for BER vs. SNR plot
+SNR_range = 0:5:40;  % SNR values for BER vs. SNR plot
 QAM_Orders = [16];  % QAM orders: 4-QAM, 16-QAM, 64-QAM
 Equalizer_Type = '1';  % MMSE equalizer
 

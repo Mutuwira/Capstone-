@@ -11,14 +11,14 @@ N = 64;  % Number of OFDM subcarriers
 M = 16;  % 16-QAM
 numBits = N * log2(M);  % Total number of bits
 bitsPerSymbol = log2(M);  % Bits per symbol (4 bits for 16-QAM)
-CP = N * 0.50;
+CP = N * 0.25;
 
 
 % Roberto' Parameters
 SNR = 40; 
 to = 0;
 %h = [1 0.2 0.1 0.05];
-%h = [0 1 0.2 0.1 0.05];
+h = [0 1 0.2 0.1 0.05];
 %h = [1];
 
 % Input data
@@ -55,13 +55,14 @@ y = channelEmulation(Data_tx, 10.^(SNR/10), to, h).*sqrt(10.^(-SNR/10));
 extraSamples = length(h) - 1; % Due to convolution in channelEmulation
 Data_rx = reshape(y, N + extraSamples + CP , []);  % Serial to parallel conversion
 Data_rx = Data_rx(CP+1: CP + N, :); % Remove CP
-
 Data_rx = (fft_function(Data_rx, N))/ sqrt(N); % FFT & Normalization
 
 fprintf('Received Power before EQ: %f\n', mean(abs(Data_rx(:)).^2));
 
 % Equalization Using Known Channel (h_hat)
-h_hat = fft(h, N) / sqrt(N); % Take FFT with normalization
+h_hat = fft(h, N) / sqrt(N); % estimation
+
+
 signalPower = mean(abs(Data_tx(:)).^2);  % Signal power
 noiseVariance = signalPower / (10^(SNR / 10));  % Noise variance
 

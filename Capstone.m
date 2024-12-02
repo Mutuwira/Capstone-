@@ -5,7 +5,7 @@ close all
 %% Parameters
 
 % OFDM Parameters
-rng(42);
+%rng(42);
 N = 64;                % Number of OFDM subcarriers
 M = 16;                % 16-QAM
 bitsPerSymbol = log2(M);
@@ -26,7 +26,7 @@ numBits = numDataSymbols * bitsPerSymbol; % Correct total number of bits
 % Synchronization Parameters
 seq_length = 128;       % Length of ZC sequence
 root = 1;              % Root of ZC sequence
-SNR_dB = 25;           % Signal-to-noise ratio (in dB)
+SNR_dB = 30;           % Signal-to-noise ratio (in dB)
 CP = 16;        % Cyclic prefix length
 CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
 fs = 10000;            % Sampling frequency (in Hz)

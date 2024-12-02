@@ -26,7 +26,7 @@ numBits = numDataSymbols * bitsPerSymbol; % Correct total number of bits
 % Synchronization Parameters
 seq_length = 128;       % Length of ZC sequence
 root = 1;              % Root of ZC sequence
-SNR_dB = 25;           % Signal-to-noise ratio (in dB)
+SNR_dB = 10;           % Signal-to-noise ratio (in dB)
 CP = 16;        % Cyclic prefix length
 CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
 fs = 10000;            % Sampling frequency (in Hz)
@@ -108,9 +108,8 @@ equalizedDataSymbols_serial = equalizedDataSymbols(:);
 
 % QAM Demapping: Convert Equalized Symbols Back to Bits
 receivedBits = zeros(numBits, 1);
-for i = 1:numDataSymbols
-    bits = qam_to_gray(equalizedDataSymbols_serial(i), M);
-    receivedBits((i-1)*bitsPerSymbol + (1:bitsPerSymbol)) = bits';
+for i = 1:numSymbols
+    receivedBits((i-1)*bitsPerSymbol + (1:bitsPerSymbol)) = qam_to_gray(equalizedDataSymbols_serial(i), M);
 end
 
 
@@ -181,11 +180,11 @@ function y = channelEmulation(x, snr_dB, to, h)
     y_delayed = [zeros(1, to), x]; % Create offset
     y_channel = conv(h, y_delayed); % Convolve with channel response
     signalPower = mean(abs(y_channel).^2); % Compute signal power
-    noisePower = signalPower / (10^(snr_dB/10));  % Compute noise power based on SNR
-    
+    noisePower = signalPower / (10^(snr_dB/10));
     % Generate AWGN noise
     noise = sqrt(noisePower/2) .* (randn(size(y_channel)) + 1i .* randn(size(y_channel)));
-    y = y_channel + noise;     % Add noise to the signal
+    % Add noise to the signal
+    y = y_channel + noise;
 end
 
 

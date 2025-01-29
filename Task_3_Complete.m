@@ -17,8 +17,8 @@ CP = N * 0.25;
 % Roberto' Parameters
 SNR = 40; 
 to = 0;
-%h = [1 0.2 0.1 0.05];
-h = [0 1 0.2 0.1 0.05];
+h = [1 0.2 0.1 0.05];
+%h = [0 1 0.2 0.1 0.05];
 %h = [1];
 
 % Input data
@@ -188,6 +188,7 @@ end
 % Plot BER vs. SNR
 figure;
 plot(SNR_range, BER, 'X - ', LineWidth=2);
+yscale("log")
 xlabel('SNR (dB)');
 ylabel('Bit Error Rate (BER)');
 title('BER vs. SNR');

@@ -5,38 +5,36 @@ close all
 %% Parameters
 
 % OFDM Parameters
-%rng(42);
 N = 64;                % Number of OFDM subcarriers
 M = 16;                % 16-QAM
 bitsPerSymbol = log2(M);
 numSymbols = 1;        % Number of OFDM symbols
 
 % Pilot Parameters
-pilotSpacing = 4;      % Spacing between pilots
-pilotIndices = 1:pilotSpacing:N; % Indices of pilot subcarriers
-dataIndices = setdiff(1:N, pilotIndices); % Indices of data subcarriers
-numDataSubcarriers = length(dataIndices); % Number of data subcarriers
-
-% Adjust Number of Data Symbols and Bits
-numDataSymbols = numDataSubcarriers * numSymbols;
-numBits = numDataSymbols * bitsPerSymbol; % Correct total number of bit
+pilotSpacing = 4;
+pilotIndices = 1:pilotSpacing:N;
+dataIndices = setdiff(1:N, pilotIndices);
+numDataSubcarriers = length(dataIndices);
 
 % Synchronization Parameters
-seq_length = 128;       % Length of ZC sequence
-root = 1;              % Root of ZC sequence
-SNR_dB = 10;           % Signal-to-noise ratio (in dB)
-CP = 16;        % Cyclic prefix length
-CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
-fs = 10000;            % Sampling frequency (in Hz)
-delay = randi([1 100]);% Random delay (in samples)
+seq_length = 128;
+root = 1;
+CP = 16;
+SNR_dB = 30;
 
-h = [0 1 0.2 0.1 0.05];  % Channel response
-%h = 1;
+% Convert "Hello world" to bits
+textMessage = 'Hello world I am Kundai';
+fprintf('Transmitted Text: %s \n', textMessage);
+dataBits = reshape(de2bi(uint8(textMessage), 8, 'left-msb')', [], 1);
+
+% Pad bits to match OFDM structure
+numBits = length(dataBits);
+numDataSymbols = ceil(numBits / bitsPerSymbol);
+numDataSymbols = ceil(numDataSymbols / numDataSubcarriers) * numDataSubcarriers;
+numBitsPadded = numDataSymbols * bitsPerSymbol;
+dataBits = [dataBits; zeros(numBitsPadded - numBits, 1)];
 
 %% Transmitter
-
-% Generate random input data bits
-dataBits = randi([0, 1], numBits, 1);
 
 % QAM Mapping
 qamSymbols = zeros(numDataSymbols, 1);
@@ -47,81 +45,62 @@ for i = 1:numDataSymbols
 end
 
 % Map data symbols to data subcarriers
-Data_tx = zeros(N, numSymbols);
-Data_tx(dataIndices, :) = reshape(qamSymbols, numDataSubcarriers, numSymbols); % Reshape to N subcarriers x symbols
+numOFDMsymbols = numDataSymbols / numDataSubcarriers;
+Data_tx = zeros(N, numOFDMsymbols);
+Data_tx(dataIndices, :) = reshape(qamSymbols, numDataSubcarriers, numOFDMsymbols);
 
 % Insert pilots
 Data_tx_with_pilots = insert_pilots(Data_tx, pilotSpacing);
 
 % OFDM Modulation
-Data_tx_ifft = ifft_function(Data_tx_with_pilots, N);   % Perform IFFT 
-Data_tx_cp = [Data_tx_ifft(end-CP+1:end, :); Data_tx_ifft];  % Add Cyclic Prefix
+Data_tx_ifft = ifft(Data_tx_with_pilots, N);
+Data_tx_cp = [Data_tx_ifft(end-CP+1:end, :); Data_tx_ifft];
 
-% Generate ZC Sequence for Synchronization
+% Generate Synchronization Sequence AFTER knowing data length
+%seq_length = max(128, ceil(0.05 * length(Data_tx_cp(:))));; 
 zc_signal = generate_signal(seq_length, root, CP);
 
-% Combine Synchronization and Data Signals
-tx_signal = [zc_signal,  Data_tx_cp.'];  % Concatenate ZC and OFDM data
+% Combine Synchronization and Data
+tx_signal = [zc_signal, Data_tx_cp(:).'];
 
-
-%% Channel: Add Delay, Noise, and CFO
-% Simulate channel effects
-rx_signal = channelEmulation(tx_signal, SNR_dB, delay, h);
-
-% Apply CFO
-t = (0:length(rx_signal)-1) / fs;  % Time vector
-cfo_phase = exp(1i * 2 * pi * CFO * t);  % CFO-induced phase rotation
-rx_signal = rx_signal .* cfo_phase;
-
+%% Channel (AWGN and Multipath)
+rx_signal = awgn(tx_signal, SNR_dB, 'measured');
 
 %% Receiver
-
 % Synchronization: Detect ZC Sequence
 [time_estimate, corr_output, cfo_estimate] = synchronization_with_CFO(rx_signal, tx_signal, CP, seq_length);
-cfo_estimate_hz = cfo_estimate * fs;
+cfo_corrected_signal = rx_signal .* exp(-1i * 2 * pi * cfo_estimate * (0:length(rx_signal)-1));
 
-% Correct CFO (if implemented)
-t_rx = (0:length(rx_signal)-1) / fs;
-rx_signal = rx_signal .* exp(-1i * 2 * pi * cfo_estimate * t_rx);
+% Extract OFDM Data
+rx_signal_aligned = cfo_corrected_signal(time_estimate + length(zc_signal):end);
+Data_rx_cp = reshape(rx_signal_aligned(1:numOFDMsymbols*(N+CP)), N+CP, numOFDMsymbols);
+Data_rx = Data_rx_cp(CP+1:end, :);
+Data_rx_fft = fft(Data_rx, N);
 
-% Extract OFDM Data after Synchronization
-rx_signal_aligned = rx_signal(time_estimate + length(zc_signal):end);
-
-% Calculate the number of OFDM symbols received
-numOFDMSymbolsReceived = floor(length(rx_signal_aligned) / (N + CP));
-Data_rx_cp = reshape(rx_signal_aligned(1:numOFDMSymbolsReceived*(N+CP)), N + CP , numOFDMSymbolsReceived);
-Data_rx = Data_rx_cp(CP+1: CP + N, :); % Remove CP
-Data_rx_fft = fft_function(Data_rx, N); % FFT 
-
-% Channel Estimation using LS
+% Channel Estimation and Equalization
 H_LS = ls_channel_estimation(Data_rx_fft, Data_tx_with_pilots, pilotSpacing);
+equalizedSymbols = Data_rx_fft ./ H_LS;
 
-% Equalization
-signalPower = mean(abs(Data_tx_with_pilots(:)).^2);  % Signal power
-noiseVariance = signalPower / (10^(SNR_dB / 10));  % Noise variance
-equalizedSymbols = mmse_equalization(Data_rx_fft, H_LS, noiseVariance, signalPower);
-%equalizedSymbols = equalizedSymbols / sqrt(mean(abs(equalizedSymbols).^2)); % normalization
-
-% Remove pilots from equalized symbols
+% Extract Data Symbols
 equalizedDataSymbols = equalizedSymbols(dataIndices, :);
 equalizedDataSymbols_serial = equalizedDataSymbols(:);
 
-% QAM Demapping: Convert Equalized Symbols Back to Bits
+% QAM Demapping
 receivedBits = zeros(numBits, 1);
 for i = 1:numDataSymbols
     bits = qam_to_gray(equalizedDataSymbols_serial(i), M);
     receivedBits((i-1)*bitsPerSymbol + (1:bitsPerSymbol)) = bits';
 end
 
+% Convert bits back to text
+receivedText = char(bi2de(reshape(receivedBits(1:numBits), 8, []).', 'left-msb'))';
+disp(['Received Text: ', receivedText]);
 
+%% Functions (Synchronization, OFDM, and Channel Estimation are retained)
 %% Results
 
 % Plot Transmitted, Received Signal, and Correlation
 my_plot(tx_signal, rx_signal, corr_output);
-
-% Print Results
-fprintf('Start of received signal detected at sample index: %d\n', time_estimate);
-fprintf('Estimated CFO in Hz: %.2f Hz\n', cfo_estimate_hz);
 
 % Calculate Bit Error Rate (BER)
 numErrors = sum(dataBits ~= receivedBits);  % Count bit errors

@@ -17,13 +17,19 @@ dataIndices = setdiff(1:N, pilotIndices);
 numDataSubcarriers = length(dataIndices);
 
 % Synchronization Parameters
-seq_length = 128;
-root = 1;
-CP = 16;
-SNR_dB = 30;
+seq_length = 128;       % Length of ZC sequence
+root = 1;              % Root of ZC sequence
+SNR_dB =30 ;           % Signal-to-noise ratio (in dB)
+CP = 0.25*N;        % Cyclic prefix length
+CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
+fs = 10000;            % Sampling frequency (in Hz)
+delay = randi([1 100]);% Random delay (in samples)
+h = [0 1 0.2 0.1 0.05];  % Channel response
+%delay = 0;
+%h = 1;
 
-% Convert "Hello world" to bits
-textMessage = 'Hello world I am Kundai';
+% Convert "text" to bits
+textMessage = 'I love cats';
 fprintf('Transmitted Text: %s \n', textMessage);
 dataBits = reshape(de2bi(uint8(textMessage), 8, 'left-msb')', [], 1);
 
@@ -53,18 +59,22 @@ Data_tx(dataIndices, :) = reshape(qamSymbols, numDataSubcarriers, numOFDMsymbols
 Data_tx_with_pilots = insert_pilots(Data_tx, pilotSpacing);
 
 % OFDM Modulation
-Data_tx_ifft = ifft(Data_tx_with_pilots, N);
+Data_tx_ifft = ifft_function(Data_tx_with_pilots, N);
 Data_tx_cp = [Data_tx_ifft(end-CP+1:end, :); Data_tx_ifft];
 
-% Generate Synchronization Sequence AFTER knowing data length
-%seq_length = max(128, ceil(0.05 * length(Data_tx_cp(:))));; 
-zc_signal = generate_signal(seq_length, root, CP);
-
 % Combine Synchronization and Data
+zc_signal = generate_signal(seq_length, root, CP);
 tx_signal = [zc_signal, Data_tx_cp(:).'];
 
 %% Channel (AWGN and Multipath)
-rx_signal = awgn(tx_signal, SNR_dB, 'measured');
+
+% Simulate channel effects
+rx_signal = channelEmulation(tx_signal, SNR_dB, delay, h);
+
+% Apply CFO
+t = (0:length(rx_signal)-1) / fs;  % Time vector
+cfo_phase = exp(1i * 2 * pi * CFO * t);  % CFO-induced phase rotation
+rx_signal = rx_signal .* cfo_phase;
 
 %% Receiver
 % Synchronization: Detect ZC Sequence
@@ -75,13 +85,17 @@ cfo_corrected_signal = rx_signal .* exp(-1i * 2 * pi * cfo_estimate * (0:length(
 rx_signal_aligned = cfo_corrected_signal(time_estimate + length(zc_signal):end);
 Data_rx_cp = reshape(rx_signal_aligned(1:numOFDMsymbols*(N+CP)), N+CP, numOFDMsymbols);
 Data_rx = Data_rx_cp(CP+1:end, :);
-Data_rx_fft = fft(Data_rx, N);
+Data_rx_fft = fft_function(Data_rx, N);
 
-% Channel Estimation and Equalization
+% Channel Estimation 
 H_LS = ls_channel_estimation(Data_rx_fft, Data_tx_with_pilots, pilotSpacing);
-equalizedSymbols = Data_rx_fft ./ H_LS;
 
-% Extract Data Symbols
+% Equalization
+signalPower = mean(abs(Data_tx_with_pilots(:)).^2);  % Signal power
+noiseVariance = signalPower / (10^(SNR_dB / 10));  % Noise variance
+equalizedSymbols = mmse_equalization(Data_rx_fft, H_LS, noiseVariance, signalPower);
+
+% Remove pilots from equalized symbols
 equalizedDataSymbols = equalizedSymbols(dataIndices, :);
 equalizedDataSymbols_serial = equalizedDataSymbols(:);
 
@@ -96,7 +110,6 @@ end
 receivedText = char(bi2de(reshape(receivedBits(1:numBits), 8, []).', 'left-msb'))';
 disp(['Received Text: ', receivedText]);
 
-%% Functions (Synchronization, OFDM, and Channel Estimation are retained)
 %% Results
 
 % Plot Transmitted, Received Signal, and Correlation
@@ -110,9 +123,6 @@ fprintf('Bit Error Rate (BER): %f\n', ber);
 % Constellation Plots
 scatterplot(qamSymbols);  % Original transmitted symbols
 title('Transmitted QAM Constellation');
-
-scatterplot(Data_rx(:));  % Received symbols after equalization
-title('Received Constellation before Equalization');
 
 scatterplot(equalizedDataSymbols_serial(:));  % Received symbols after equalization
 title('Received Constellation after Equalization');
@@ -146,14 +156,6 @@ function Data_tx_with_pilots = insert_pilots(Data_tx, pilotSpacing)
         Data_tx_with_pilots(pilotIndices, sym) = pilotValue; % Insert pilots
     end
 end
-
-% % Channel Emulation
-% function y = channelEmulation(x, snr, to, h)
-%     y = zeros(1, to); % Create offset
-%     y = [y conv(h, x)]; % Convolve with channel response
-%     y = sqrt( 10.^(snr/10)) .* y; % Scale with SNR
-%     y = y + sqrt(1/2) .* (randn(size(y)) + 1i .* randn(size(y))); % Add AWGN
-% end
 
 function y = channelEmulation(x, snr_dB, to, h)
     % Add delay

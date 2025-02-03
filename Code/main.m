@@ -13,6 +13,8 @@
 - channel_estimation.m       % Channel estimation using preamble
 - channelEmulation.m         % Channel simulation (AWGN, multipath)
 - display_results.m          % Display results and plots
+- systematic_conv_decoder.m
+- systematic_conv_encoder.m
 %}
 
 clc
@@ -49,8 +51,15 @@ numBits = length(dataBits);
 
 
 %% Transmitter
-[dataBits, numDataSymbols] = bit_padding(dataBits, bitsPerSymbol, N); % Bit mapping
-qamSymbols = qam_modulation(dataBits, bitsPerSymbol, numDataSymbols, M); % QAM mapping
+
+% Convolutional Encoding (systematic)
+encodedBits = systematic_conv_encoder(dataBits);
+
+% Bit Padding to match OFDM structure
+[encodedBits, numDataSymbols] = bit_padding(encodedBits, bitsPerSymbol, N);
+
+% QAM Modulation
+qamSymbols = qam_modulation(encodedBits, bitsPerSymbol, numDataSymbols, M);
 
 % OFDM Modulation
 Data_tx = reshape(qamSymbols, N, numDataSymbols / N);
@@ -91,17 +100,24 @@ H_est = channel_estimation(preamble_rx, zc_signal, seq_length, N, noiseVariance,
 % MMSE Equalization
 equalizedSymbols = equalization(Data_rx_fft, H_est, signalPower, noiseVariance);
 
-% QAM Demapping
-receivedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, numDataSymbols, M);
+% QAM Demodulation gives you receivedEncodedBits:
+receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, numDataSymbols, M);
 
-% Convert bits back to text
-receivedText = char(bi2de(reshape(receivedBits(1:numBits), 8, []).', 'left-msb'))';
+% Viterbi Decoding using our custom systematic decoder:
+decodedBits = systematic_conv_decoder(receivedEncodedBits);
+
+% Extract the original bits (if padding was added, use the first numBits bits).
+receivedText = char(bi2de(reshape(decodedBits(1:numBits), 8, []).', 'left-msb'))';
 disp(['Received Text: ', receivedText]);
 
+% Extract only the originally transmitted bits from the decoded stream
+decodedBits_truncated = decodedBits(1:numBits);
+
 % Calculate Bit Error Rate (BER)
-numErrors = sum(dataBits ~= receivedBits);  % Count bit errors
+numErrors = sum(dataBits ~= decodedBits_truncated);  % Count bit errors
 ber = numErrors / numBits;  % Compute BER
 fprintf('Bit Error Rate (BER): %f\n', ber);
+
 
 % Displaying results
 %display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);

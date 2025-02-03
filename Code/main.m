@@ -123,4 +123,4 @@ fprintf('Bit Error Rate (BER): %f\n', ber);
 
 
 % Displaying results
-%display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);
+display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);

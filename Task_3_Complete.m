@@ -15,11 +15,11 @@ CP = N * 0.25;
 
 
 % Roberto' Parameters
-SNR = 40; 
+SNR = 25; 
 to = 0;
-h = [1 0.2 0.1 0.05];
+%h = [1 0.2 0.1 0.05];
 %h = [0 1 0.2 0.1 0.05];
-%h = [1];
+h = [1];
 
 % Input data
 dataBits = randi([0, 1], numBits, 1);  % Random bit stream
@@ -36,7 +36,7 @@ end
 
 % OFDM Modulation (TX): Serial to Parallel, IFFT
 Data_tx = reshape(qamSymbols, N, []);  % Reshape to N subcarriers x symbols
-Data_tx = ifft(Data_tx, N)* sqrt(N); % IFFT & Normalization
+Data_tx = ifft_function(Data_tx, N)* sqrt(N); % IFFT & Normalization
 
 fprintf('Power before CP: %f\n', mean(abs(Data_tx(:)).^2));
 
@@ -47,7 +47,6 @@ fprintf('Power after CP: %f\n', mean(abs(Data_tx(:)).^2));
 Data_tx = Data_tx(:);  % Convert to serial for transmission
 
 % Pass through the channel (provided function)
-% y = channelEmulationKundai(Data_tx, SNR, to, h);
 y = channelEmulation(Data_tx, 10.^(SNR/10), to, h).*sqrt(10.^(-SNR/10));
 
 %% Receiver

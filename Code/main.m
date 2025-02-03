@@ -31,15 +31,16 @@ bitsPerSymbol = log2(M);
 preamble_length = 128;  % Length of preamble sequence
 seq_length = 128;       % Length of ZC sequence (used in preamble)
 root = 1;              % Root of ZC sequence
-SNR_dB = 100;           % Signal-to-noise ratio (in dB)
+SNR_dB = 25;           % Signal-to-noise ratio (in dB)
 CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
 fs = 10000;            % Sampling frequency (in Hz)
 delay = randi([1 100]);% Random delay (in samples)
 CP = 0.25*N;           % Cyclic prefix length
 
 % Channel Response
-%h = [0 1 0.2 0.1 0.05];  
+%h = [0 1 0.2 0.1 0.05]; 
 h = 1;
+
 % Input Transmitted
 textMessage = ['Research Proposal, demonstrating anticipated research.'];
 fprintf('Transmitted Text: %s \n', textMessage);
@@ -72,7 +73,7 @@ rx_signal = rx_signal .* cfo_phase;
 %% Receiver
 
 % Synchronization: Detect ZC Sequence
-[time_estimate, corr_output, cfo_estimate] = synchronization(rx_signal, tx_signal, CP, seq_length);
+[time_estimate, corr_output, cfo_estimate] = synchronization(rx_signal, zc_signal, CP, seq_length);
 cfo_corrected_signal = rx_signal .* exp(-1i * 2 * pi * cfo_estimate * (0:length(rx_signal)-1));
 
 % Extracting OFDM Data
@@ -84,7 +85,8 @@ Data_rx_fft = fft_function(Data_rx, N);
 % Channel Estimation
 signalPower = mean(abs(tx_signal(:)).^2);  % Signal power
 noiseVariance = signalPower / (10^(SNR_dB / 10));  % Noise variance
-H_est = channel_estimation(cfo_corrected_signal, zc_signal, seq_length, N, noiseVariance, signalPower);
+preamble_rx = cfo_corrected_signal(time_estimate : time_estimate + length(zc_signal) - 1);
+H_est = channel_estimation(preamble_rx, zc_signal, seq_length, N, noiseVariance, signalPower);
 
 % MMSE Equalization
 equalizedSymbols = equalization(Data_rx_fft, H_est, signalPower, noiseVariance);
@@ -102,4 +104,4 @@ ber = numErrors / numBits;  % Compute BER
 fprintf('Bit Error Rate (BER): %f\n', ber);
 
 % Displaying results
-display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);
+%display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);

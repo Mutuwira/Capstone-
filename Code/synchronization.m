@@ -7,6 +7,8 @@ function [time_estimate, corr_output, cfo_estimate] = synchronization(rx_signal,
     zc_portion = rx_signal(peak_index + seq_length: peak_index + seq_length + CP - 1);
     phase_diff = conj(cp_portion) .* zc_portion;
     cfo_estimate = angle(sum(phase_diff)) / (2 * pi * seq_length);
+    %cfo_estimate = (10000 / seq_length) * angle(sum(phase_diff)) / (2 * pi);
+
 
     function [c, lags] = corr1(rx_signal, tx_signal)
     len_tx = length(tx_signal);  % Get length of tx_signal

@@ -31,7 +31,7 @@ bitsPerSymbol = log2(M);
 % Linear Encoder Parameters
 %K_param = 5; % means we have 3 memory bits
 %generator = [1 1 1 1 1];  % This means parity = mod(b[n] + b[n-1] + b[n-2] + b[n-3], 2), since K=4
-n = 7; % Codeword length
+n = ; % Codeword length
 k = 4; % Message length
 code_rate = k / n ;
 

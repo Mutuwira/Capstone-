@@ -14,7 +14,7 @@
 - channelEmulation.m         % Channel simulation (AWGN, multipath)
 - display_results.m          % Display results and plots
 - decoder.m
-- encoder.m                  % Systematic Linear encoder
+- encoder.m
 %}
 
 clc

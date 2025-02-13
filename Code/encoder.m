@@ -1,4 +1,4 @@
-% function encodedBits = encoder(dataBits, n, k, codeType)
+% function encodedBits = encoder(dataBits, n, k)
 %     % Check if parameters are valid
 %     if n <= k
 %         error('n must be greater than k for valid encoding');
@@ -84,35 +84,15 @@ function encodedBits = encoder(dataBits, n, k)
         padding = k - addedBits;
         dataBits = [dataBits; zeros(padding, 1)];
     end
+
     % Reshape the input into a matrix with k columns
-    dataBits = double(dataBits);
     dataBits = reshape(dataBits, k, []).';
+    length(dataBits)
 
-    % Determine the encoding method based on codeType
-    switch lower(codeType)
-        case 'hamming'
-            % Hamming Encoding
-            m = n - k;                 % Number of parity bits
-            h = hammgen(m);            % Generate parity-check matrix
-            genMatrix = gen2par(h);    % Convert to generator matrix
-            encodedBits = mod(dataBits .* genMatrix, 2);
-
-        case 'linear'
-            % Linear Block Encoding
-            % Define or generate a simple generator matrix
-            % Example: Identity matrix with parity columns added
-            genMatrix = [eye(k), randi([0, 1], k, n - k)]; % Example generator matrix
-            encodedBits = mod(dataBits .* genMatrix, 2);
-
-        case 'cyclic'
-            % Cyclic Encoding
-            genPoly = cyclpoly(n, k);          % Generate generator polynomial
-            [~, genMatrix] = cyclgen(n, genPoly); % Generate generator matrix
-            encodedBits = mod(dataBits .* genMatrix, 2);
-
-        otherwise
-            error('Unsupported codeType. Use "hamming", "linear", or "cyclic".');
-    end
+    % Generating a simple generator matrix
+    genMatrix = [eye(k), randi([0, 1], k, n - k)] % Example generator matrix
+    size(genMatrix.')
+    encodedBits = mod( double(dataBits) * double(genMatrix), 2);
 
     % Reshape encodedBits back to a single column vector
     encodedBits = encodedBits.';

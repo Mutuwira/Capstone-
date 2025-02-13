@@ -65,7 +65,7 @@ function H_est = channel_estimation(rx_signal, preamble, seq_length, N, noiseVar
     H_est = H_est .* (abs(H_est).^2 ./ (abs(H_est).^2 + (noiseVariance / signalPower)));
 
     % Plot the channel in logarithmic scale
-        H_est_dB= 10log(H_est);
+        H_est_dB= 10*log(H_est);
         plot(H_estdB);
         xlabel();
         ylabel();

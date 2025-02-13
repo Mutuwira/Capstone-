@@ -33,7 +33,6 @@ bitsPerSymbol = log2(M);
 %generator = [1 1 1 1 1];  % This means parity = mod(b[n] + b[n-1] + b[n-2] + b[n-3], 2), since K=4
 n = 7; % Codeword length
 k = 4; % Message length
-code_rate = k / n ;
 
 % Preamble and Synchronization Parameters
 preamble_length = 128;  % Length of preamble sequence
@@ -60,7 +59,7 @@ numBits = length(dataBits);
 
 % Convolutional Encoding (systematic)
 %encodedBits = conv_encoder(dataBits,K_param, generator);
-encodedBits = encoder(dataBits, code_rate, k);
+encodedBits = encoder(dataBits, n, k, 'Hamming');
 
 % Bit Padding to match OFDM structure
 [encodedBits, numDataSymbols] = bit_padding(encodedBits, bitsPerSymbol, N);

@@ -28,11 +28,10 @@ N = 64;                % Number of OFDM subcarriers
 M = 16;                % 16-QAM
 bitsPerSymbol = log2(M);
 
-% Linear Encoder Parameters
-%K_param = 5; % means we have 3 memory bits
-%generator = [1 1 1 1 1];  % This means parity = mod(b[n] + b[n-1] + b[n-2] + b[n-3], 2), since K=4
-n = 7; % Codeword length
+% Linear Encoder Parameters (Code rate = n/k)
+n = 8; % Codeword length
 k = 4; % Message length
+
 
 % Preamble and Synchronization Parameters
 preamble_length = 128;  % Length of preamble sequence
@@ -59,7 +58,7 @@ numBits = length(dataBits);
 
 % Convolutional Encoding (systematic)
 %encodedBits = conv_encoder(dataBits,K_param, generator);
-encodedBits = encoder(dataBits, n, k, 'Hamming');
+encodedBits = encoder(dataBits, n, k);
 
 % Bit Padding to match OFDM structure
 [encodedBits, numDataSymbols] = bit_padding(encodedBits, bitsPerSymbol, N);
@@ -110,7 +109,8 @@ equalizedSymbols = equalization(Data_rx_fft, H_est, signalPower, noiseVariance);
 receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, numDataSymbols, M);
 
 % Viterbi Decoding using our custom systematic decoder:
-decodedBits = conv_decoder(receivedEncodedBits, K_param, generator);
+%decodedBits = conv_decoder(receivedEncodedBits, K_param, generator);
+decodedBits = decoder(receivedEncodedBits, n, k, codeType);
 
 % Extract the original bits (if padding was added, use the first numBits bits).
 receivedText = char(bi2de(reshape(decodedBits(1:numBits), 8, []).', 'left-msb'))';
@@ -123,6 +123,7 @@ decodedBits_truncated = decodedBits(1:numBits);
 numErrors = sum(dataBits ~= decodedBits_truncated);  % Count bit errors
 ber = numErrors / numBits;  % Compute BER
 fprintf('Bit Error Rate (BER): %f\n', ber);
+
 
 
 % Displaying results

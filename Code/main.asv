@@ -28,9 +28,9 @@ N = 64;                % Number of OFDM subcarriers
 M = 16;                % 16-QAM
 bitsPerSymbol = log2(M);
 
-% Linear Encoder Parameters (Code rate = k/n)
-n = 8; % Codeword length
-k = 4; % Message length
+% Linear Encoder Parameters (Code rate = n/k)
+n = 10; % Codeword length
+k = 5; % Message length
 genMatrix = [eye(k), randi([0, 1], k, n - k)]; % Generator matrix
 
 

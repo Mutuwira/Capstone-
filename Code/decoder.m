@@ -1,6 +1,6 @@
 function decodedBits = decoder(receivedEncodedBits, n, k, genMatrix)
 
-    % Ensure receivedEncodedBits is a column vector
+    % Ensuring receivedEncodedBits is a column vector
     if isrow(receivedEncodedBits)
         receivedEncodedBits = receivedEncodedBits';
     end

@@ -38,18 +38,18 @@ genMatrix = [eye(k), randi([0, 1], k, n - k)]; % Generator matrix
 preamble_length = 128;  % Length of preamble sequence
 seq_length = 128;       % Length of ZC sequence (used in preamble)
 root = 1;              % Root of ZC sequence
-SNR_dB = 25;           % Signal-to-noise ratio (in dB)
+SNR_dB = 30;           % Signal-to-noise ratio (in dB)
 CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
 fs = 10000;            % Sampling frequency (in Hz)
 delay = randi([1 100]);% Random delay (in samples)
 CP = 0.25*N;           % Cyclic prefix length
 
 % Channel Response
-%h = [0 1 0.2 0.1 0.05]; 
-h = 1;
+h = [0 1 0.2 0.1 0.05]; 
+%h = 1;
 
 % Input Transmitted
-textMessage = ['Research Proposal, demonstrating anticipated research.'];
+textMessage = ['Hello Kundai'];
 fprintf('Transmitted Text: %s \n', textMessage);
 dataBits = reshape(de2bi(uint8(textMessage), 8, 'left-msb')', [], 1);
 numBits = length(dataBits);
@@ -109,8 +109,7 @@ equalizedSymbols = equalization(Data_rx_fft, H_est, signalPower, noiseVariance);
 % QAM Demodulation gives you receivedEncodedBits:
 receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, numDataSymbols, M);
 
-% Viterbi Decoding using our custom systematic decoder:
-%decodedBits = conv_decoder(receivedEncodedBits, K_param, generator);
+% Decoding using our linear systematic decoder:
 decodedBits = decoder(receivedEncodedBits, n, k, genMatrix);
 
 % Extract the original bits (if padding was added, use the first numBits bits).
@@ -126,4 +125,4 @@ ber = numErrors / numBits;  % Compute BER
 fprintf('Bit Error Rate (BER): %f\n', ber);
 
 % Displaying results
-%display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);
+display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);

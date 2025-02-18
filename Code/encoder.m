@@ -71,7 +71,7 @@
 %     G = double(G);
 % end
 
-function encodedBits = encoder(dataBits, n, k)
+function encodedBits = encoder(dataBits, n, k, genMatrix)
     % Ensure dataBits is a column vector for consistency
     if isrow(dataBits)
         dataBits = dataBits';
@@ -87,12 +87,9 @@ function encodedBits = encoder(dataBits, n, k)
 
     % Reshape the input into a matrix with k columns
     dataBits = reshape(dataBits, k, []).';
-    length(dataBits)
 
     % Generating a simple generator matrix
-    genMatrix = [eye(k), randi([0, 1], k, n - k)] % Example generator matrix
-    size(genMatrix.')
-    encodedBits = mod( double(dataBits) * double(genMatrix), 2);
+    encodedBits = mod(double(dataBits) * double(genMatrix), 2);
 
     % Reshape encodedBits back to a single column vector
     encodedBits = encodedBits.';

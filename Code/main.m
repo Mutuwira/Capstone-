@@ -13,7 +13,7 @@
 - channel_estimation.m       % Channel estimation using preamble
 - channelEmulation.m         % Channel simulation (AWGN, multipath)
 - display_results.m          % Display results and plots
-- decoder.m
+- decoder.m                  % Systematic Linear dencoder
 - encoder.m                  % Systematic Linear encoder
 %}
 
@@ -31,6 +31,7 @@ bitsPerSymbol = log2(M);
 % Linear Encoder Parameters (Code rate = n/k)
 n = 8; % Codeword length
 k = 4; % Message length
+genMatrix = [eye(k), randi([0, 1], k, n - k)]; % Generator matrix
 
 
 % Preamble and Synchronization Parameters
@@ -58,7 +59,7 @@ numBits = length(dataBits);
 
 % Convolutional Encoding (systematic)
 %encodedBits = conv_encoder(dataBits,K_param, generator);
-encodedBits = encoder(dataBits, n, k);
+encodedBits = encoder(dataBits, n, k, genMatrix);
 
 % Bit Padding to match OFDM structure
 [encodedBits, numDataSymbols] = bit_padding(encodedBits, bitsPerSymbol, N);
@@ -110,7 +111,7 @@ receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, numDataS
 
 % Viterbi Decoding using our custom systematic decoder:
 %decodedBits = conv_decoder(receivedEncodedBits, K_param, generator);
-decodedBits = decoder(receivedEncodedBits, n, k);
+decodedBits = decoder(receivedEncodedBits, n, k, genMatrix);
 
 % Extract the original bits (if padding was added, use the first numBits bits).
 receivedText = char(bi2de(reshape(decodedBits(1:numBits), 8, []).', 'left-msb'))';

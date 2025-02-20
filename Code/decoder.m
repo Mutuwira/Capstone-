@@ -34,7 +34,6 @@ function decodedBits = decoder(receivedEncodedBits, n, k, genMatrix)
     errorLocations = syndromeTable(syndromeIndex, :);
 
     % Correct errors in the received code
-    %correctedCode = mod(receivedEncodedBits + errorLocations, 2);
     correctedCode = mod(receivedEncodedBits + reshape(errorLocations, size(receivedEncodedBits)), 2);
 
     % Extract the message bits

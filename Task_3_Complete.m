@@ -17,9 +17,9 @@ CP = N * 0.25;
 % Roberto' Parameters
 SNR = 25; 
 to = 0;
-%h = [1 0.2 0.1 0.05];
-%h = [0 1 0.2 0.1 0.05];
-h = [1];
+h = [1 0.2 0.1 0.05];
+
+%h = [1];
 
 % Input data
 dataBits = randi([0, 1], numBits, 1);  % Random bit stream
@@ -158,7 +158,7 @@ end
 
 % Visualizing BER vs SNR
 
-SNR_range = 0:5:100; % Range of SNR values
+SNR_range = 0:5:40; % Range of SNR values
 BER = zeros(length(SNR_range), 1); % Store BER for each SNR
 
 for i = 1:length(SNR_range)

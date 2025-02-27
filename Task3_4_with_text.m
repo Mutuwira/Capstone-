@@ -28,7 +28,7 @@ delay = randi([1 100]);% Random delay (in samples)
 CP = 0.25*N;        % Cyclic prefix length
 %CP = max(delay)+1; % if  we make the CP greater than the max delay spread of the channel
 
-h = [0 1 0.2 0.1 0.05];  % Channel response
+h = [1 ];  % Channel response
 %delay = 0;
 %h = 1;
 
@@ -132,7 +132,7 @@ scatterplot(equalizedDataSymbols_serial(:));  % Received symbols after equalizat
 title('Received Constellation after Equalization');
 
 % Visualizing BER vs SNR
-SNR_range = -10:2:100;
+SNR_range = 0:2:40;
 BER = zeros(length(SNR_range), 1);
 
 for i = 1:length(SNR_range)

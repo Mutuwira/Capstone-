@@ -45,11 +45,11 @@ delay = randi([1 100]);% Random delay (in samples)
 CP = 0.25*N;           % Cyclic prefix length
 
 % Channel Response
-h = [1+1i*0.5 0.2+1i*0.6 0.1+1i*0.4 0.05+1i*0.01]; 
-%h = 1;
+%h = [1+1i*0.5 0.2+1i*0.6 0.1+1i*0.4 0.05+1i*0.01]; 
+h = 1;
 
 % Input Transmitted
-textMessage = ['Hello Kundai'];
+textMessage = ['Heavy-duty temperature sensors for marine applications'];
 fprintf('Transmitted Text: %s \n', textMessage);
 dataBits = reshape(de2bi(uint8(textMessage), 8, 'left-msb')', [], 1);
 numBits = length(dataBits);
@@ -94,7 +94,6 @@ cfo_corrected_signal = rx_signal .* exp(-1i * 2 * pi * cfo_estimate * (0:length(
 
 % Extracting OFDM Data
 rx_signal_aligned = cfo_corrected_signal(time_estimate + length(zc_signal):end);
-% Data_rx_cp = reshape(rx_signal_aligned(1:numDataSymbols*(N+CP)/N), N+CP, numDataSymbols/N);
 Data_rx_cp = reshape(rx_signal_aligned(1:end-(length(h)-1)), N+CP, numofdmsymbols);
 Data_rx = Data_rx_cp(CP+1:end, :);
 Data_rx_fft = fft_function(Data_rx, N);
@@ -109,7 +108,9 @@ H_est = channel_estimation(preamble_rx, zc_signal, seq_length, N, noiseVariance,
 equalizedSymbols = equalization(Data_rx_fft, H_est, signalPower, noiseVariance);
 
 % QAM Demodulation gives you receivedEncodedBits:
-receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, N, M);
+%receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, N, M);
+receivedEncodedBits = qamdemod(equalizedSymbols,M,'UnitAveragePower',true,'OutputType', 'bit');
+
 
 % Decoding using our linear systematic decoder:
 decodedBits = decoder(receivedEncodedBits, n, k, genMatrix);
@@ -127,4 +128,4 @@ ber = numErrors / numBits;  % Compute BER
 fprintf('Bit Error Rate (BER): %f\n', ber);
 
 % Displaying results
-display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);
+%display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);

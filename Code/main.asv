@@ -95,7 +95,6 @@ cfo_corrected_signal = rx_signal .* exp(-1i * 2 * pi * cfo_estimate * (0:length(
 % Extracting OFDM Data
 rx_signal_aligned = cfo_corrected_signal(time_estimate + length(zc_signal):end);
 % Data_rx_cp = reshape(rx_signal_aligned(1:numDataSymbols*(N+CP)/N), N+CP, numDataSymbols/N);
-Data_rx_cp = reshape(rx_signal_aligned(1:end-(length(h)-1)), N+CP, numofdmsymbols);
 Data_rx = Data_rx_cp(CP+1:end, :);
 Data_rx_fft = fft_function(Data_rx, N);
 

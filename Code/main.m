@@ -109,7 +109,7 @@ H_est = channel_estimation(preamble_rx, zc_signal, seq_length, N, noiseVariance,
 equalizedSymbols = equalization(Data_rx_fft, H_est, signalPower, noiseVariance);
 
 % QAM Demodulation gives you receivedEncodedBits:
-receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, numDataSymbols, M);
+receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, N, M);
 
 % Decoding using our linear systematic decoder:
 decodedBits = decoder(receivedEncodedBits, n, k, genMatrix);

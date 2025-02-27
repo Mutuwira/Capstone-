@@ -1,33 +1,4 @@
 function H_est = channel_estimation(rx_signal, preamble, seq_length, N, noiseVariance, signalPower)
-% CHANNEL_ESTIMATION estimates the channel frequency response using a preamble.
-%
-%   H_est = channel_estimation(rx_signal, preamble, seq_length, N, noiseVariance, signalPower)
-%
-%   INPUTS:
-%     rx_signal     : Received (CFO-corrected) signal that contains the preamble
-%                     at the very beginning.
-%     preamble      : Transmitted preamble signal (with cyclic prefix) used for estimation.
-%     seq_length    : Length of the preamble sequence (without the cyclic prefix).
-%     N             : Number of OFDM subcarriers (FFT size for data symbols).
-%     noiseVariance : Estimated noise variance.
-%     signalPower   : Average signal power.
-%
-%   OUTPUT:
-%     H_est         : Estimated channel frequency response (N x 1 vector).
-%
-%   The function works as follows:
-%     1. Determine the cyclic prefix (CP) length from the known preamble.
-%     2. Extract the received preamble from rx_signal (assumed to start at sample 1).
-%     3. Remove the CP from both the received preamble and the known (transmitted) preamble.
-%     4. Compute the FFT of both (using FFT length = seq_length).
-%     5. Compute the LS channel estimate: H_ls = FFT(received_preamble) ./ FFT(transmitted_preamble).
-%     6. If seq_length and N differ, interpolate the estimate to yield N estimates.
-%     7. Optionally, apply an MMSE-style correction.
-%
-%   NOTE:
-%     Ensure that the first argument is the received signal—not the transmitted one.
-%     (If needed, modify your main code accordingly.)
-
     % Determine the CP length (assumes preamble = [CP, clean_sequence])
     CP_length = length(preamble) - seq_length;
     

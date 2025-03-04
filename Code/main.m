@@ -31,6 +31,7 @@ bitsPerSymbol = log2(M);
 % Linear Encoder Parameters (Code rate = k/n)
 n = 8; % Codeword length
 k = 4; % Message length
+code_rate = k/n;
 genMatrix = [eye(k), randi([0, 1], k, n - k)]; % Generator matrix
 
 
@@ -38,25 +39,23 @@ genMatrix = [eye(k), randi([0, 1], k, n - k)]; % Generator matrix
 preamble_length = 128;  % Length of preamble sequence
 seq_length = 128;       % Length of ZC sequence (used in preamble)
 root = 1;              % Root of ZC sequence
-SNR_dB = 30;           % Signal-to-noise ratio (in dB)
+SNR_dB = 10;           % Signal-to-noise ratio (in dB)
 CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
 fs = 10000;            % Sampling frequency (in Hz)
 delay = randi([1 100]);% Random delay (in samples)
 CP = 0.25*N;           % Cyclic prefix length
 
 % Channel Response
-%h = [1+1i*0.5 0.2+1i*0.6 0.1+1i*0.4 0.05+1i*0.01]; 
-h = 1;
+h = [1+1i*0.5 0.2+1i*0.6 0.1+1i*0.4 0.05+1i*0.01]; 
+%h = 1;
 
 % Input Transmitted
-textMessage = ['Heavy-duty temperature sensors for marine applications'];
+textMessage = 'Heavy-duty temperature sensors for marine applications';
 fprintf('Transmitted Text: %s \n', textMessage);
 dataBits = reshape(de2bi(uint8(textMessage), 8, 'left-msb')', [], 1);
 numBits = length(dataBits);
 
-
 %% Transmitter
-
 % Linear encoding
 encodedBits = encoder(dataBits, n, k, genMatrix);
 
@@ -78,7 +77,6 @@ zc_signal = generate_signal(seq_length, root, CP);
 tx_signal = [zc_signal, Data_tx_cp(:).'];
 
 %% Channel (AWGN and Multipath)
-
 rx_signal = channelEmulation(tx_signal, SNR_dB, delay, h);
 
 % Apply CFO
@@ -87,7 +85,6 @@ cfo_phase = exp(1i * 2 * pi * CFO * t);  % CFO-induced phase rotation
 rx_signal = rx_signal .* cfo_phase;
 
 %% Receiver
-
 % Synchronization: Detect ZC Sequence
 [time_estimate, corr_output, cfo_estimate] = synchronization(rx_signal, zc_signal, CP, seq_length);
 cfo_corrected_signal = rx_signal .* exp(-1i * 2 * pi * cfo_estimate * (0:length(rx_signal)-1));
@@ -109,21 +106,21 @@ equalizedSymbols = equalization(Data_rx_fft, H_est, signalPower, noiseVariance);
 
 % QAM Demodulation gives you receivedEncodedBits:
 %receivedEncodedBits = qam_demodulation(equalizedSymbols, bitsPerSymbol, N, M);
+equalizedSymbols = equalizedSymbols(:);
 receivedEncodedBits = qamdemod(equalizedSymbols,M,'UnitAveragePower',true,'OutputType', 'bit');
 
+% Remove the bit padding added at the transmitter
+receivedEncodedBits = receivedEncodedBits(1:numBits/code_rate);
 
 % Decoding using our linear systematic decoder:
 decodedBits = decoder(receivedEncodedBits, n, k, genMatrix);
 
 % Extract the original bits (if padding was added, use the first numBits bits).
-receivedText = char(bi2de(reshape(decodedBits(1:numBits), 8, []).', 'left-msb'))';
+receivedText = char(bi2de(reshape(decodedBits, 8, []).', 'left-msb'))';
 disp(['Received Text: ', receivedText]);
 
-% Extract only the originally transmitted bits from the decoded stream
-decodedBits_truncated = decodedBits(1:numBits);
-
 % Calculate Bit Error Rate (BER)
-numErrors = sum(dataBits ~= decodedBits_truncated);  % Count bit errors
+numErrors = sum(dataBits ~= decodedBits);  % Count bit errors
 ber = numErrors / numBits;  % Compute BER
 fprintf('Bit Error Rate (BER): %f\n', ber);
 

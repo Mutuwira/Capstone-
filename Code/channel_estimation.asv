@@ -18,8 +18,6 @@ function H_est = channel_estimation(rx_signal, preamble, seq_length, N, noiseVar
     % Compute the FFT (using FFT length = seq_length)
     RX_FFT = fft(rx_preamble_noCP, seq_length);
     TX_FFT = fft(tx_preamble_noCP, seq_length);
-    %RX_FFT = fft(rx_preamble_noCP, N);
-    %TX_FFT = fft(tx_preamble_noCP, N);
     
     % LS Channel Estimation: elementwise division in the frequency domain
     H_ls = RX_FFT ./ TX_FFT;
@@ -36,22 +34,18 @@ function H_est = channel_estimation(rx_signal, preamble, seq_length, N, noiseVar
     
     % Optional MMSE correction: weight the LS estimate based on the estimated SNR.
     H_est = H_est .* (abs(H_est).^2 ./ (abs(H_est).^2 + (noiseVariance / signalPower)));
-    
-    % True Channel
+
     h = [1+1i*0.5 0.2+1i*0.6 0.1+1i*0.4 0.05+1i*0.01]; 
-    H_true = fft(h,N);
 
     % Plot the channel in logarithmic scale
-    H_est_dB= 10*log10(abs(H_est));
-    H_true_dB = 10*log10(abs(H_true));
+    H_est_dB= 10*log(abs(H_est));
     plot(H_est_dB, 'r');
     hold on;
-    plot(H_true_dB, 'b')
+    plot(h, 'b')
     hold off;
     title("Estimated Channel (in dB)")
     xlabel('Subcarrier Index');
     ylabel('Magnitude (dB)');
-    legend('Estimated Channel','True Channel');
     grid on;
 
 end

@@ -2,6 +2,8 @@
 
 %{
 - main.m                     % Main script: Sets parameters and calls functions
+- data_source.m              % Generates the source data
+- source_decoder.m           % Converts binary sequence back to text
 - bit_padding.m              % To Match OFDM Structure
 - qam_modulation.m           % QAM mapping
 - qam_demodulation.m         % QAM demapping
@@ -39,7 +41,7 @@ genMatrix = [eye(k), randi([0, 1], k, n - k)]; % Generator matrix
 preamble_length = 128;  % Length of preamble sequence
 seq_length = 128;       % Length of ZC sequence (used in preamble)
 root = 1;              % Root of ZC sequence
-SNR_dB = 10;           % Signal-to-noise ratio (in dB)
+SNR_dB = 30;           % Signal-to-noise ratio (in dB)
 CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
 fs = 10000;            % Sampling frequency (in Hz)
 delay = randi([1 100]);% Random delay (in samples)
@@ -47,13 +49,10 @@ CP = 0.25*N;           % Cyclic prefix length
 
 % Channel Response
 h = [1+1i*0.5 0.2+1i*0.6 0.1+1i*0.4 0.05+1i*0.01]; 
-%h = 1;
 
 % Input Transmitted
 textMessage = 'Heavy-duty temperature sensors for marine applications';
-fprintf('Transmitted Text: %s \n', textMessage);
-dataBits = reshape(de2bi(uint8(textMessage), 8, 'left-msb')', [], 1);
-numBits = length(dataBits);
+[dataBits, numBits] = data_source(textMessage);
 
 %% Transmitter
 % Linear encoding
@@ -116,8 +115,8 @@ receivedEncodedBits = receivedEncodedBits(1:numBits/code_rate);
 decodedBits = decoder(receivedEncodedBits, n, k, genMatrix);
 
 % Extract the original bits (if padding was added, use the first numBits bits).
-receivedText = char(bi2de(reshape(decodedBits, 8, []).', 'left-msb'))';
-disp(['Received Text: ', receivedText]);
+decodedText = source_decoder(decodedBits, numBits);
+disp(['Received Text: ', decodedText]);
 
 % Calculate Bit Error Rate (BER)
 numErrors = sum(dataBits ~= decodedBits);  % Count bit errors
@@ -125,4 +124,4 @@ ber = numErrors / numBits;  % Compute BER
 fprintf('Bit Error Rate (BER): %f\n', ber);
 
 % Displaying results
-%display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);
+display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);

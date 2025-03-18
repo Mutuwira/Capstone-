@@ -41,7 +41,7 @@ genMatrix = [eye(k), randi([0, 1], k, n - k)]; % Generator matrix
 preamble_length = 128;  % Length of preamble sequence
 seq_length = 128;       % Length of ZC sequence (used in preamble)
 root = 1;              % Root of ZC sequence
-SNR_dB = 30;           % Signal-to-noise ratio (in dB)
+SNR_dB = 35;           % Signal-to-noise ratio (in dB)
 CFO = randi([1 20]);   % Carrier Frequency Offset (in Hz)
 fs = 10000;            % Sampling frequency (in Hz)
 delay = randi([1 100]);% Random delay (in samples)
@@ -124,4 +124,4 @@ ber = numErrors / numBits;  % Compute BER
 fprintf('Bit Error Rate (BER): %f\n', ber);
 
 % Displaying results
-display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);
+% display_results(tx_signal, rx_signal, corr_output, qamSymbols, equalizedSymbols, SNR_dB);
